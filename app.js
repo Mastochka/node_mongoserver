@@ -18,7 +18,7 @@ app.use((req, res, next) => {
 const users = require(path.join(__dirname, './routes/users.js'));
 const cards = require(path.join(__dirname, './routes/cards.js'));
 const missingLink = require(path.join(__dirname, './routes/missingLink.js'));
-const port = 3001;
+const port = 3000;
 
 mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
