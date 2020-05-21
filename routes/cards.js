@@ -1,10 +1,8 @@
-/* eslint-disable import/no-dynamic-require */
 const router = require('express').Router();
-const path = require('path');
 
 const {
   createCard, findCards, deleteCard, dislikeCard, likeCard,
-} = require(path.join(__dirname, '../controllers/cards'));
+} = require('../controllers/cards');
 
 router.get('/', findCards);
 router.post('/', createCard);

@@ -20,9 +20,9 @@ module.exports.deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.id)
     .then((card) => {
       if (card) {
-        res.send({ message: `Карточка c id ${card._id} удалена` });
+        res.send({ message: 'Карточка удалена' });
       } else {
-        res.status(400).send({ message: `Карточки с id ${req.params.id} не существует` });
+        res.status(404).send({ message: 'Карточки не существует' });
       }
     })
     .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
@@ -34,16 +34,22 @@ module.exports.likeCard = (req, res) => {
     { $addToSet: { likes: req.user._id } },
     { new: true },
   )
-    .then(() => res.send({ data: 'лайк поставлен' }))
+    .then((card) => {
+      if (card) res.send({ message: 'Лайк добавлен' });
+      else res.status(404).send({ message: 'Карточки не существует' });
+    })
     .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
 };
 
 module.exports.dislikeCard = (req, res) => {
   Card.findByIdAndUpdate(
-    req.params.cardId,
+    req.params.id,
     { $pull: { likes: req.user._id } },
     { new: true },
   )
-    .then(() => res.send({ data: 'лайк убран' }))
+    .then((card) => {
+      if (card) res.send({ message: 'Лайк удален' });
+      else res.status(404).send({ message: 'Карточки не существует' });
+    })
     .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
 };

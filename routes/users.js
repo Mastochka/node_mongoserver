@@ -1,11 +1,8 @@
-/* eslint-disable import/no-dynamic-require */
 const router = require('express').Router();
-
-const path = require('path');
 
 const {
   createUser, findUsers, findUser, updateUser, updateAvatar,
-} = require(path.join(__dirname, '../controllers/users'));
+} = require('../controllers/users');
 
 router.get('/:id', findUser);
 router.post('/', createUser);

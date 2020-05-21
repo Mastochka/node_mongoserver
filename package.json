@@ -1,23 +1,20 @@
 {
   "name": "node_mongoserver",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "node server with mongoDB and mongoose",
   "main": "app.js",
   "scripts": {
-    "start": "app.js",
+    "start": "node app.js",
     "dev": "nodemon app.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Mikhail Safonov",
   "license": "ISC",
   "devDependencies": {
     "eslint": "^6.8.0",
     "eslint-config-airbnb": "^18.1.0",
     "eslint-config-airbnb-base": "^14.1.0",
     "eslint-plugin-import": "^2.20.2",
-    "eslint-plugin-jsx-a11y": "^6.2.3",
-    "eslint-plugin-react": "^7.19.0",
-    "eslint-plugin-react-hooks": "^2.5.0",
     "nodemon": "^2.0.3"
   },
   "dependencies": {
