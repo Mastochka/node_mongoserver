@@ -1,22 +1,23 @@
 const express = require('express');
 
+require('dotenv').config();
+
 const app = express();
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 
 app.use(bodyParser.json());
+app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use((req, res, next) => {
-  req.user = {
-    _id: '5ec540cd8f9dd06c50b5e699',
-  };
-  next();
-});
+
 const users = require('./routes/users');
 const cards = require('./routes/cards');
 const missingLink = require('./routes/missingLink');
+const auth = require('./middlewares/auth');
+const { PORT, DATABASE_URL } = require('./config');
 
-const { PORT, DATABASE_URL } = require('./config.js');
+const { createUser, login } = require('./controllers/users');
 
 mongoose.connect(DATABASE_URL, {
   useNewUrlParser: true,
@@ -25,6 +26,9 @@ mongoose.connect(DATABASE_URL, {
   useUnifiedTopology: true,
 });
 
+app.post('/signin', login);
+app.post('/signup', createUser);
+app.use(auth);
 app.use('/users', users);
 app.use('/cards', cards);
 app.use('/*', missingLink);

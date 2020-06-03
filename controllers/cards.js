@@ -17,17 +17,19 @@ module.exports.findCards = (req, res) => {
 };
 
 module.exports.deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.id)
+  Card.findById(req.params.id)
     .then((card) => {
-      if (card) {
-        res.send({ message: 'Карточка удалена' });
-      } else {
+      if (!card) {
         res.status(404).send({ message: 'Карточки не существует' });
       }
+      if (JSON.stringify(card.owner) !== JSON.stringify(req.user._id)) {
+        res.status(403).send({ message: 'Нет доступа' });
+      }
+      res.send({ message: 'Карточка удалена' });
+      return card.remove();
     })
     .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
 };
-
 module.exports.likeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params.id,
