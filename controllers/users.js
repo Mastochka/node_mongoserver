@@ -14,7 +14,12 @@ module.exports.findUser = (req, res) => {
       if (user) res.send({ data: user });
       else res.status(404).send({ error: 'Нет пользователя с таким id' });
     })
-    .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: 'Несуществующий объект' });
+      }
+      res.status(500).send({ message: 'Произошла ошибка' });
+    });
 };
 
 module.exports.createUser = (req, res) => {
@@ -26,8 +31,23 @@ module.exports.createUser = (req, res) => {
       User.create({
         name, about, avatar, email, password: hash,
       })
-        .then((user) => res.send({ data: user }))
-        .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
+        .then((user) => res.send({
+          data: {
+            _id: user._id, about: user.about, avatar: user.avatar, email: user.email,
+          },
+        }))
+        .catch((err) => {
+          if (err.name === 'MongoError' && err.code === 11000) {
+            return res.status(400).send({ message: 'Пользователь с такой почтой уже существует' });
+          }
+          if (err.name === 'ValidationError' && err.message.includes('email')) {
+            return res.status(400).send({ message: 'Неправильный формат почты' });
+          }
+          if (err.name === 'ValidationError' && err.message.includes('avatar')) {
+            return res.status(400).send({ message: 'Неправильный URL аватарки' });
+          }
+          return res.status(500).send({ message: 'Произошла ошибка' });
+        });
     });
 };
 
@@ -52,6 +72,7 @@ module.exports.updateAvatar = (req, res) => {
     .then((user) => res.send({ message: `Аватар обновлен на ${user.avatar}` }))
     .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
 };
+
 module.exports.login = (req, res) => {
   const { email, password } = req.body;
   User.findOne({ email }).select('+password')
@@ -63,14 +84,13 @@ module.exports.login = (req, res) => {
         }
         const token = jwt.sign(
           { _id: user._id },
-          process.env.JWT_SECRET,
+          process.env.JWT_SECRET || 'dev-secret-key',
           { expiresIn: '7d' },
         );
-        res.cookie('jwt', token, {
+        return res.cookie('jwt', token, {
           maxAge: 3600000 * 24 * 7,
           httpOnly: true,
-        })
-          .end();
+        }).end();
       }
       return Promise.reject(new Error('Неправильные почта или пароль'));
     })

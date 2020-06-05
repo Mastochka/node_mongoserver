@@ -1,13 +1,15 @@
-/* eslint-disable import/no-dynamic-require */
-const path = require('path');
-
-const Card = require(path.join(__dirname, '../models/card'));
+const Card = require('../models/card');
 
 module.exports.createCard = (req, res) => {
   const { name, link } = req.body;
   Card.create({ name, link, owner: req.user._id })
     .then((card) => res.send({ data: card }))
-    .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
+    .catch((err) => {
+      if (err.name === 'ValidationError' && err.message.includes('link')) {
+        return res.status(400).send({ message: 'Неправильная ссылка на картинку' });
+      }
+      return res.status(500).send({ message: 'Произошла ошибка' });
+    });
 };
 
 module.exports.findCards = (req, res) => {
@@ -20,10 +22,10 @@ module.exports.deleteCard = (req, res) => {
   Card.findById(req.params.id)
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Карточки не существует' });
+        return res.status(404).send({ message: 'Карточки не существует' });
       }
       if (JSON.stringify(card.owner) !== JSON.stringify(req.user._id)) {
-        res.status(403).send({ message: 'Нет доступа' });
+        return res.status(403).send({ message: 'Нет доступа' });
       }
       res.send({ message: 'Карточка удалена' });
       return card.remove();
