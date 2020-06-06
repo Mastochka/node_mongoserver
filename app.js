@@ -32,4 +32,7 @@ app.use(auth);
 app.use('/users', users);
 app.use('/cards', cards);
 app.use('/*', missingLink);
-app.listen(PORT, () => {});
+app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
+  console.log(`App listening on port ${PORT}`);
+});

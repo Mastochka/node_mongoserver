@@ -40,11 +40,8 @@ module.exports.createUser = (req, res) => {
           if (err.name === 'MongoError' && err.code === 11000) {
             return res.status(400).send({ message: 'Пользователь с такой почтой уже существует' });
           }
-          if (err.name === 'ValidationError' && err.message.includes('email')) {
-            return res.status(400).send({ message: 'Неправильный формат почты' });
-          }
-          if (err.name === 'ValidationError' && err.message.includes('avatar')) {
-            return res.status(400).send({ message: 'Неправильный URL аватарки' });
+          if (err.name === 'ValidationError') {
+            return res.status(400).send({ message: 'Ошибка валидации', error: err.message });
           }
           return res.status(500).send({ message: 'Произошла ошибка' });
         });
@@ -77,24 +74,25 @@ module.exports.login = (req, res) => {
   const { email, password } = req.body;
   User.findOne({ email }).select('+password')
     .then((user) => {
-      if (user) {
-        const matched = bcrypt.compare(password, user.password);
-        if (!matched) {
-          return Promise.reject(new Error('Неправильные почта или пароль'));
-        }
-        const token = jwt.sign(
-          { _id: user._id },
-          process.env.JWT_SECRET || 'dev-secret-key',
-          { expiresIn: '7d' },
-        );
-        return res.cookie('jwt', token, {
-          maxAge: 3600000 * 24 * 7,
-          httpOnly: true,
-        }).end();
+      if (!user) {
+        return Promise.reject(new Error('Неправильные почта или пароль'));
       }
-      return Promise.reject(new Error('Неправильные почта или пароль'));
+      return bcrypt.compare(password, user.password)
+        .then((matched) => {
+          if (!matched) {
+            return Promise.reject(new Error('Неправильные почта или пароль'));
+          }
+          const token = jwt.sign(
+            { _id: user._id },
+            process.env.JWT_SECRET || 'dev-secret-key',
+            { expiresIn: '7d' },
+          );
+          return res.cookie('jwt', token, {
+            maxAge: 3600000 * 24 * 7,
+            httpOnly: true,
+          }).end();
+        })
+        .catch((err) => res.status(401).send({ message: err.message }));
     })
-    .catch((err) => {
-      res.status(401).send({ message: err.message });
-    });
+    .catch((err) => res.status(401).send({ message: err.message }));
 };

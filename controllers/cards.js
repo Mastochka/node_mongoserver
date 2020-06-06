@@ -5,8 +5,8 @@ module.exports.createCard = (req, res) => {
   Card.create({ name, link, owner: req.user._id })
     .then((card) => res.send({ data: card }))
     .catch((err) => {
-      if (err.name === 'ValidationError' && err.message.includes('link')) {
-        return res.status(400).send({ message: 'Неправильная ссылка на картинку' });
+      if (err.name === 'ValidationError') {
+        return res.status(400).send({ message: 'Ошибка валидации', error: err.message });
       }
       return res.status(500).send({ message: 'Произошла ошибка' });
     });
@@ -32,6 +32,7 @@ module.exports.deleteCard = (req, res) => {
     })
     .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
 };
+
 module.exports.likeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params.id,
@@ -39,10 +40,17 @@ module.exports.likeCard = (req, res) => {
     { new: true },
   )
     .then((card) => {
-      if (card) res.send({ message: 'Лайк добавлен' });
-      else res.status(404).send({ message: 'Карточки не существует' });
+      if (card) {
+        return res.send({ message: 'Лайк добавлен' });
+      }
+      return res.status(404).send({ message: 'Карточки не существует' });
     })
-    .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        return res.status(400).send({ message: 'Несуществующий объект' });
+      }
+      return res.status(500).send({ message: 'Произошла ошибка' });
+    });
 };
 
 module.exports.dislikeCard = (req, res) => {
@@ -52,8 +60,15 @@ module.exports.dislikeCard = (req, res) => {
     { new: true },
   )
     .then((card) => {
-      if (card) res.send({ message: 'Лайк удален' });
-      else res.status(404).send({ message: 'Карточки не существует' });
+      if (card) {
+        return res.send({ message: 'Лайк удален' });
+      }
+      return res.status(404).send({ message: 'Карточки не существует' });
     })
-    .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        return res.status(400).send({ message: 'Несуществующий объект' });
+      }
+      return res.status(500).send({ message: 'Произошла ошибка' });
+    });
 };
