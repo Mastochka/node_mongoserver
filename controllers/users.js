@@ -1,28 +1,27 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user.js');
+const UnauthorizedError = require('../errors/unauthorized-err');
+const NotFoundError = require('../errors/not-found-err');
 
-module.exports.findUsers = (req, res) => {
+const { NODE_ENV, JWT_SECRET } = process.env;
+
+module.exports.findUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send({ data: users }))
-    .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
+    .catch(next);
 };
 
-module.exports.findUser = (req, res) => {
+module.exports.findUser = (req, res, next) => {
   User.findById(req.params.id)
     .then((user) => {
       if (user) res.send({ data: user });
-      else res.status(404).send({ error: 'Нет пользователя с таким id' });
+      else throw new NotFoundError('Нет пользователя с таким id');
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Несуществующий объект' });
-      }
-      res.status(500).send({ message: 'Произошла ошибка' });
-    });
+    .catch(next);
 };
 
-module.exports.createUser = (req, res) => {
+module.exports.createUser = (req, res, next) => {
   const {
     name, about, avatar, email, password,
   } = req.body;
@@ -36,19 +35,11 @@ module.exports.createUser = (req, res) => {
             _id: user._id, about: user.about, avatar: user.avatar, email: user.email,
           },
         }))
-        .catch((err) => {
-          if (err.name === 'MongoError' && err.code === 11000) {
-            return res.status(400).send({ message: 'Пользователь с такой почтой уже существует' });
-          }
-          if (err.name === 'ValidationError') {
-            return res.status(400).send({ message: 'Ошибка валидации', error: err.message });
-          }
-          return res.status(500).send({ message: 'Произошла ошибка' });
-        });
+        .catch(next);
     });
 };
 
-module.exports.updateUser = (req, res) => {
+module.exports.updateUser = (req, res, next) => {
   const { name, about } = req.body;
   User.findByIdAndUpdate(req.user._id, { name, about }, {
     new: true,
@@ -56,10 +47,10 @@ module.exports.updateUser = (req, res) => {
     upsert: true,
   })
     .then((user) => res.send({ data: user }))
-    .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
+    .catch(next);
 };
 
-module.exports.updateAvatar = (req, res) => {
+module.exports.updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
   User.findByIdAndUpdate(req.user._id, { avatar }, {
     new: true,
@@ -67,24 +58,24 @@ module.exports.updateAvatar = (req, res) => {
     upsert: true,
   })
     .then((user) => res.send({ message: `Аватар обновлен на ${user.avatar}` }))
-    .catch(() => res.status(500).send({ message: 'Произошла ошибка' }));
+    .catch(next);
 };
 
-module.exports.login = (req, res) => {
+module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
   User.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        return Promise.reject(new Error('Неправильные почта или пароль'));
+        throw new UnauthorizedError('Неправильные почта или пароль');
       }
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            return Promise.reject(new Error('Неправильные почта или пароль'));
+            throw new UnauthorizedError('Неправильные почта или пароль');
           }
           const token = jwt.sign(
             { _id: user._id },
-            process.env.JWT_SECRET || 'dev-secret-key',
+            NODE_ENV === 'production' ? JWT_SECRET : 'dev-secret-key',
             { expiresIn: '7d' },
           );
           return res.cookie('jwt', token, {
@@ -92,7 +83,7 @@ module.exports.login = (req, res) => {
             httpOnly: true,
           }).end();
         })
-        .catch((err) => res.status(401).send({ message: err.message }));
+        .catch(next);
     })
-    .catch((err) => res.status(401).send({ message: err.message }));
+    .catch(next);
 };
