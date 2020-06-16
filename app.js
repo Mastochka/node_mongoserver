@@ -6,6 +6,9 @@ const app = express();
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+
 const { errors } = require('celebrate');
 
 app.use(bodyParser.json());
@@ -21,7 +24,12 @@ const auth = require('./middlewares/auth');
 const errorHandler = require('./middlewares/errorHandler');
 const { PORT, DATABASE_URL } = require('./config');
 
-const { createUser, login } = require('./controllers/users');
+const userAuth = require('./routes/userAuth');
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+});
 
 mongoose.connect(DATABASE_URL, {
   useNewUrlParser: true,
@@ -30,14 +38,15 @@ mongoose.connect(DATABASE_URL, {
   useUnifiedTopology: true,
 });
 
+app.use(helmet());
+app.use(limiter);
 app.use(requestLogger);
 app.get('/crash-test', () => {
   setTimeout(() => {
     throw new Error('Сервер сейчас упадёт');
   }, 0);
 });
-app.post('/signin', login);
-app.post('/', createUser);
+app.use('/', userAuth);
 app.use(auth);
 app.use('/', users);
 app.use('/cards', cards);
