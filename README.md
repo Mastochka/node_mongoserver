@@ -1,9 +1,9 @@
 # node_mongo_server for Mesto Project
 # Hosted @ 84.201.137.4 and mesto-project.ru
 # Стек:
-Node.js
-MongoDB
-Mongoose
+### Node.js
+### MongoDB
+### Mongoose
 
 ## Descriptoin
 
